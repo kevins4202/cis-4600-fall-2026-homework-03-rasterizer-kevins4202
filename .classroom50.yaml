@@ -1,0 +1,13 @@
+schema: "classroom50/repo-config/v1"
+classroom: "cis-4600-fall-2026"
+assignment: "homework-03-rasterizer"
+secret: "l2s7n96s"
+owner:
+  username: "kevins4202"
+  id: 93951122
+  accepted_at: "2026-09-16T22:21:14Z"
+source:
+  owner: "CIS-4600-Fall-2026"
+  owner_id: 320357659
+  repo: "hw03-base"
+  branch: "master"
