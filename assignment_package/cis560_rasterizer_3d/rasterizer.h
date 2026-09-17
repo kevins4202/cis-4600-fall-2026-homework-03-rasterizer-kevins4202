@@ -1,5 +1,6 @@
 #pragma once
 #include <polygon.h>
+#include "segment.h"
 #include <QImage>
 
 class Rasterizer
