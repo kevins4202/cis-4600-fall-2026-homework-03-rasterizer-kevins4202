@@ -2,6 +2,10 @@
 #include <polygon.h>
 #include "segment.h"
 #include <QImage>
+#include <array>
+
+glm::vec3 BarycentricInterpolation(const std::array<glm::vec4, 3>& vertices,
+                                   const glm::vec2& point);
 
 class Rasterizer
 {
