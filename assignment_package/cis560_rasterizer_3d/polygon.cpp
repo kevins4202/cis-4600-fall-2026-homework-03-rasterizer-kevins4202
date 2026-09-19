@@ -4,11 +4,106 @@
 void Polygon::Triangulate()
 {
     m_tris.clear();
-    for(unsigned int i = 1; i + 1 < m_verts.size(); i++)
+    if(m_verts.size() < 3)
     {
-        Triangle t = {{0, i, i + 1}};
-        m_tris.push_back(t);
+        return;
     }
+
+    float signedArea = 0.f;
+    for(unsigned int i = 0; i < m_verts.size(); i++)
+    {
+        const glm::vec4& a = m_verts[i].m_pos;
+        const glm::vec4& b = m_verts[(i + 1) % m_verts.size()].m_pos;
+        signedArea += a.x * b.y - b.x * a.y;
+    }
+    if(signedArea == 0.f)
+    {
+        return;
+    }
+    float winding = signedArea > 0.f ? 1.f : -1.f;
+
+    auto cross = [this](unsigned int a, unsigned int b, unsigned int c)
+    {
+        const glm::vec4& p = m_verts[a].m_pos;
+        const glm::vec4& q = m_verts[b].m_pos;
+        const glm::vec4& r = m_verts[c].m_pos;
+        return (q.x - p.x) * (r.y - p.y)
+             - (q.y - p.y) * (r.x - p.x);
+    };
+
+    bool concave = false;
+    for(unsigned int i = 0; i < m_verts.size(); i++)
+    {
+        unsigned int previous = (i + m_verts.size() - 1) % m_verts.size();
+        unsigned int next = (i + 1) % m_verts.size();
+        if(winding * cross(previous, i, next) < 0.f)
+        {
+            concave = true;
+            break;
+        }
+    }
+
+    if(!concave)
+    {
+        for(unsigned int i = 1; i + 1 < m_verts.size(); i++)
+        {
+            Triangle triangle = {{0, i, i + 1}};
+            m_tris.push_back(triangle);
+        }
+        return;
+    }
+
+    std::vector<unsigned int> remaining;
+    for(unsigned int i = 0; i < m_verts.size(); i++)
+    {
+        remaining.push_back(i);
+    }
+
+    while(remaining.size() > 3)
+    {
+        bool foundEar = false;
+        for(unsigned int i = 0; i < remaining.size(); i++)
+        {
+            unsigned int previous = remaining[(i + remaining.size() - 1) % remaining.size()];
+            unsigned int current = remaining[i];
+            unsigned int next = remaining[(i + 1) % remaining.size()];
+            if(winding * cross(previous, current, next) <= 0.f)
+            {
+                continue;
+            }
+
+            bool containsVertex = false;
+            for(unsigned int vertex : remaining)
+            {
+                if(vertex != previous && vertex != current && vertex != next
+                   && winding * cross(previous, current, vertex) >= 0.f
+                   && winding * cross(current, next, vertex) >= 0.f
+                   && winding * cross(next, previous, vertex) >= 0.f)
+                {
+                    containsVertex = true;
+                    break;
+                }
+            }
+            if(containsVertex)
+            {
+                continue;
+            }
+
+            Triangle triangle = {{previous, current, next}};
+            m_tris.push_back(triangle);
+            remaining.erase(remaining.begin() + i);
+            foundEar = true;
+            break;
+        }
+        if(!foundEar)
+        {
+            m_tris.clear();
+            return;
+        }
+    }
+
+    Triangle triangle = {{remaining[0], remaining[1], remaining[2]}};
+    m_tris.push_back(triangle);
 }
 
 glm::vec3 GetImageColor(const glm::vec2 &uv_coord, const QImage* const image)

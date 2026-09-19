@@ -54,7 +54,7 @@ public:
     ~Polygon();
 
     // TODO: Complete the body of Triangulate() in polygon.cpp
-    // Creates a set of triangles that, when combined, fill the area of this convex polygon.
+    // Creates a set of triangles that fill this polygon, including concave polygons.
     void Triangulate();
 
     // Copies the input QImage into this Polygon's texture
