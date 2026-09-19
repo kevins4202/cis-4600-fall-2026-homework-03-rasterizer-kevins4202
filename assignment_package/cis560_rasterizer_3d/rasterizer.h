@@ -1,5 +1,6 @@
 #pragma once
 #include <polygon.h>
+#include "camera.h"
 #include "segment.h"
 #include <QImage>
 #include <array>
@@ -13,6 +14,7 @@ private:
     //This is the set of Polygons loaded from a JSON scene file
     std::vector<Polygon> m_polygons;
 public:
+    Camera m_camera;
     Rasterizer(const std::vector<Polygon>& polygons);
     QImage RenderScene();
     void ClearScene();

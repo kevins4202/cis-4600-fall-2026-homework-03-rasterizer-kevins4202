@@ -12,13 +12,15 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
+    camera.cpp \
         mainwindow.cpp \
     polygon.cpp \
     rasterizer.cpp \
     segment.cpp \
     tiny_obj_loader.cc
 
-HEADERS  += mainwindow.h \
+HEADERS  += camera.h \
+    mainwindow.h \
     polygon.h \
     rasterizer.h \
     segment.h \
