@@ -55,6 +55,11 @@ glm::mat4 Camera::GetProjectionMatrix() const
     return projection;
 }
 
+const glm::vec4& Camera::GetForward() const
+{
+    return m_forward;
+}
+
 void Camera::TranslateForward(float amount)
 {
     m_position += amount * m_forward;

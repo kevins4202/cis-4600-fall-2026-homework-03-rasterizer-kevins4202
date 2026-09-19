@@ -26,11 +26,55 @@ glm::vec3 BarycentricInterpolation(const std::array<glm::vec4, 3>& vertices,
                      glm::cross(a - p, b - p).z / area);
 }
 
+float PerspectiveCorrectZ(const std::array<glm::vec4, 3>& vertices,
+                          const glm::vec2& point)
+{
+    glm::vec3 weights = BarycentricInterpolation(vertices, point);
+    return 1.f / (weights[0] / vertices[0].z
+                + weights[1] / vertices[1].z
+                + weights[2] / vertices[2].z);
+}
+
+glm::vec2 PerspectiveCorrectUV(const std::array<glm::vec4, 3>& vertices,
+                               const std::array<glm::vec2, 3>& uvs,
+                               const glm::vec2& point,
+                               float fragmentZ)
+{
+    glm::vec3 weights = BarycentricInterpolation(vertices, point);
+    return fragmentZ * (weights[0] * uvs[0] / vertices[0].z
+                      + weights[1] * uvs[1] / vertices[1].z
+                      + weights[2] * uvs[2] / vertices[2].z);
+}
+
+glm::vec3 PerspectiveCorrectColor(const std::array<glm::vec4, 3>& vertices,
+                                  const std::array<glm::vec3, 3>& colors,
+                                  const glm::vec2& point,
+                                  float fragmentZ)
+{
+    glm::vec3 weights = BarycentricInterpolation(vertices, point);
+    return fragmentZ * (weights[0] * colors[0] / vertices[0].z
+                      + weights[1] * colors[1] / vertices[1].z
+                      + weights[2] * colors[2] / vertices[2].z);
+}
+
+glm::vec4 PerspectiveCorrectNormal(const std::array<glm::vec4, 3>& vertices,
+                                   const std::array<glm::vec4, 3>& normals,
+                                   const glm::vec2& point,
+                                   float fragmentZ)
+{
+    glm::vec3 weights = BarycentricInterpolation(vertices, point);
+    glm::vec4 normal = fragmentZ
+                     * (weights[0] * normals[0] / vertices[0].z
+                      + weights[1] * normals[1] / vertices[1].z
+                      + weights[2] * normals[2] / vertices[2].z);
+    return glm::vec4(glm::normalize(glm::vec3(normal)), 0.f);
+}
+
 Rasterizer::Rasterizer(const std::vector<Polygon>& polygons)
     : m_polygons(polygons)
 {}
 
-QImage Rasterizer::RenderScene()
+QImage Rasterizer::RenderScene() const
 {
     QImage result(512, 512, QImage::Format_RGB32);
     // Fill the image with black pixels.
@@ -39,18 +83,53 @@ QImage Rasterizer::RenderScene()
     result.fill(qRgb(0.f, 0.f, 0.f));
     std::vector<float> depthBuffer(result.width() * result.height(),
                                    std::numeric_limits<float>::infinity());
+    glm::mat4 viewMatrix = m_camera.GetViewMatrix();
+    glm::mat4 projectionMatrix = m_camera.GetProjectionMatrix();
+    glm::vec3 lightDirection = glm::normalize(-glm::vec3(m_camera.GetForward()));
 
     for(const Polygon& polygon : m_polygons)
     {
+        bool is3D = polygon.mp_texture != nullptr;
         for(const Triangle& triangle : polygon.m_tris)
         {
             std::array<glm::vec4, 3> vertices;
             std::array<glm::vec3, 3> colors;
+            std::array<glm::vec2, 3> uvs;
+            std::array<glm::vec4, 3> normals;
+            bool behindCamera = false;
             for(unsigned int i = 0; i < vertices.size(); i++)
             {
                 const Vertex& vertex = polygon.m_verts[triangle.m_indices[i]];
-                vertices[i] = vertex.m_pos;
                 colors[i] = vertex.m_color;
+                uvs[i] = vertex.m_uv;
+                normals[i] = vertex.m_normal;
+
+                if(is3D)
+                {
+                    glm::vec4 cameraPosition = viewMatrix * vertex.m_pos;
+                    if(cameraPosition.z <= 0.f)
+                    {
+                        behindCamera = true;
+                        break;
+                    }
+
+                    glm::vec4 clipPosition = projectionMatrix * cameraPosition;
+                    glm::vec4 screenPosition = clipPosition / clipPosition.w;
+                    vertices[i] = glm::vec4(
+                        (screenPosition.x + 1.f) * 0.5f * result.width(),
+                        (1.f - screenPosition.y) * 0.5f * result.height(),
+                        cameraPosition.z,
+                        1.f);
+                }
+                else
+                {
+                    vertices[i] = vertex.m_pos;
+                }
+            }
+
+            if(behindCamera)
+            {
+                continue;
             }
 
             std::array<Segment, 3> segments = {{
@@ -98,19 +177,40 @@ QImage Rasterizer::RenderScene()
                 float lastColumn = glm::min(static_cast<float>(result.width() - 1), std::floor(xRight));
                 for(float x = firstColumn; x <= lastColumn; x += 1.f)
                 {
-                    glm::vec3 weights = BarycentricInterpolation(vertices, glm::vec2(x, y));
-                    float depth = weights[0] * vertices[0].z
-                                + weights[1] * vertices[1].z
-                                + weights[2] * vertices[2].z;
+                    glm::vec2 point(x, y);
+                    glm::vec3 weights = BarycentricInterpolation(vertices, point);
+                    float depth;
+                    if(is3D)
+                    {
+                        depth = PerspectiveCorrectZ(vertices, point);
+                    }
+                    else
+                    {
+                        depth = weights[0] * vertices[0].z
+                              + weights[1] * vertices[1].z
+                              + weights[2] * vertices[2].z;
+                    }
                     int pixelX = static_cast<int>(x);
                     int index = pixelX + result.width() * y;
 
                     if(depth < depthBuffer[index])
                     {
                         depthBuffer[index] = depth;
-                        glm::vec3 color = weights[0] * colors[0]
-                                        + weights[1] * colors[1]
-                                        + weights[2] * colors[2];
+                        glm::vec3 color;
+                        if(is3D)
+                        {
+                            glm::vec2 uv = PerspectiveCorrectUV(vertices, uvs, point, depth);
+                            glm::vec4 normal = PerspectiveCorrectNormal(vertices, normals, point, depth);
+                            float diffuse = glm::max(glm::dot(glm::vec3(normal), lightDirection), 0.f);
+                            float brightness = 0.3f + 0.7f * diffuse;
+                            color = brightness * GetImageColor(uv, polygon.mp_texture);
+                        }
+                        else
+                        {
+                            color = weights[0] * colors[0]
+                                  + weights[1] * colors[1]
+                                  + weights[2] * colors[2];
+                        }
                         color = glm::clamp(color, glm::vec3(0.f), glm::vec3(255.f));
                         result.setPixel(pixelX, y, qRgb(color.r, color.g, color.b));
                     }

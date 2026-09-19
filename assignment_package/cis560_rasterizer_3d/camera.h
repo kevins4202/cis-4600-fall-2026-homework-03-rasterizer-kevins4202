@@ -18,6 +18,7 @@ public:
 
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
+    const glm::vec4& GetForward() const;
 
     void TranslateForward(float amount);
     void TranslateRight(float amount);

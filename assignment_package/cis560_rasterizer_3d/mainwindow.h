@@ -19,7 +19,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void DisplayQImage(QImage &i);
+    void DisplayQImage(const QImage &i);
 
     void keyPressEvent(QKeyEvent *e);
 

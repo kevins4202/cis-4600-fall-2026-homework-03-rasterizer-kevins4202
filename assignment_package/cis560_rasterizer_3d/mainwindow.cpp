@@ -56,7 +56,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::DisplayQImage(QImage &i)
+void MainWindow::DisplayQImage(const QImage &i)
 {
     QPixmap pixmap(QPixmap::fromImage(i));
     graphics_scene.addPixmap(pixmap);
