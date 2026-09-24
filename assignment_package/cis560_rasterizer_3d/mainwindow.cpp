@@ -12,6 +12,7 @@
 #include <QImageWriter>
 #include <QDebug>
 #include <tiny_obj_loader.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 //Poke around in this file if you want, but it's virtually uncommented!
 //You won't need to modify anything in here to complete the assignment.
@@ -110,7 +111,8 @@ void MainWindow::on_actionLoad_Scene_triggered()
                 glm::vec3 c(arr[0].toDouble(), arr[1].toDouble(), arr[2].toDouble());
                 vert_col.push_back(c);
             }
-            Polygon p(name, vert_pos, vert_col);
+            bool worldSpace = obj["worldSpace"].toBool(false);
+            Polygon p(name, vert_pos, vert_col, worldSpace);
             polygons.push_back(p);
         }
         //Regular Polygon case
@@ -135,6 +137,41 @@ void MainWindow::on_actionLoad_Scene_triggered()
             QString filename = local_path;
             filename.append(obj["filename"].toString());
             Polygon p = LoadOBJ(filename, name);
+
+            glm::mat4 model(1.f);
+            if(obj.contains(QString("translate")))
+            {
+                QJsonArray value = obj["translate"].toArray();
+                model = glm::translate(model, glm::vec3(value[0].toDouble(),
+                                                        value[1].toDouble(),
+                                                        value[2].toDouble()));
+            }
+            if(obj.contains(QString("rotate")))
+            {
+                QJsonArray value = obj["rotate"].toArray();
+                model = glm::rotate(model, static_cast<float>(value[0].toDouble()), glm::vec3(1.f, 0.f, 0.f));
+                model = glm::rotate(model, static_cast<float>(value[1].toDouble()), glm::vec3(0.f, 1.f, 0.f));
+                model = glm::rotate(model, static_cast<float>(value[2].toDouble()), glm::vec3(0.f, 0.f, 1.f));
+            }
+            if(obj.contains(QString("scale")))
+            {
+                QJsonArray value = obj["scale"].toArray();
+                model = glm::scale(model, glm::vec3(value[0].toDouble(),
+                                                    value[1].toDouble(),
+                                                    value[2].toDouble()));
+            }
+
+            glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+            for(Vertex& vertex : p.m_verts)
+            {
+                vertex.m_pos = model * vertex.m_pos;
+                glm::vec3 normal = normalMatrix * glm::vec3(vertex.m_normal);
+                if(glm::length(normal) > 0.f)
+                {
+                    vertex.m_normal = glm::vec4(glm::normalize(normal), 0.f);
+                }
+            }
+
             QString texPath = local_path;
             texPath.append(obj["texture"].toString());
             p.SetTexture(new QImage(texPath));

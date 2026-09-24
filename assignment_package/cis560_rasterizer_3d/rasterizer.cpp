@@ -89,7 +89,7 @@ QImage Rasterizer::RenderScene() const
 
     for(const Polygon& polygon : m_polygons)
     {
-        bool is3D = polygon.mp_texture != nullptr;
+        bool is3D = polygon.m_is3D;
         for(const Triangle& triangle : polygon.m_tris)
         {
             std::array<glm::vec4, 3> vertices;
@@ -199,11 +199,19 @@ QImage Rasterizer::RenderScene() const
                         glm::vec3 color;
                         if(is3D)
                         {
-                            glm::vec2 uv = PerspectiveCorrectUV(vertices, uvs, point, depth);
                             glm::vec4 normal = PerspectiveCorrectNormal(vertices, normals, point, depth);
                             float diffuse = glm::max(glm::dot(glm::vec3(normal), lightDirection), 0.f);
                             float brightness = 0.3f + 0.7f * diffuse;
-                            color = brightness * GetImageColor(uv, polygon.mp_texture);
+                            if(polygon.mp_texture != nullptr)
+                            {
+                                glm::vec2 uv = PerspectiveCorrectUV(vertices, uvs, point, depth);
+                                color = brightness * GetImageColor(uv, polygon.mp_texture);
+                            }
+                            else
+                            {
+                                color = brightness
+                                      * PerspectiveCorrectColor(vertices, colors, point, depth);
+                            }
                         }
                         else
                         {

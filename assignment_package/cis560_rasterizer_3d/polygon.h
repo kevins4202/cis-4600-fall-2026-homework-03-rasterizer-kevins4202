@@ -38,6 +38,8 @@ public:
     std::vector<Vertex> m_verts;
     // The name of this polygon, primarily to help you debug
     QString m_name;
+    // Whether this polygon's positions are in 3D world space rather than pixel space
+    bool m_is3D;
     // The image that can be read to determine pixel color when used in conjunction with UV coordinates
     // Not used until homework 3.
     QImage* mp_texture;
@@ -46,7 +48,8 @@ public:
     QImage* mp_normalMap;
 
     // Polygon class constructors
-    Polygon(const QString& name, const std::vector<glm::vec4>& pos, const std::vector<glm::vec3> &col);
+    Polygon(const QString& name, const std::vector<glm::vec4>& pos,
+            const std::vector<glm::vec3> &col, bool is3D = false);
     Polygon(const QString& name, int sides, glm::vec3 color, glm::vec4 pos, float rot, glm::vec4 scale);
     Polygon(const QString& name);
     Polygon();
