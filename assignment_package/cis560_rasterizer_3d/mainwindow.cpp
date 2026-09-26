@@ -113,6 +113,21 @@ void MainWindow::on_actionLoad_Scene_triggered()
             }
             bool worldSpace = obj["worldSpace"].toBool(false);
             Polygon p(name, vert_pos, vert_col, worldSpace);
+            QJsonArray uv = obj["vertexUV"].toArray();
+            if(uv.size() == static_cast<int>(p.m_verts.size()))
+            {
+                for(int j = 0; j < uv.size(); j++)
+                {
+                    QJsonArray arr = uv[j].toArray();
+                    p.m_verts[j].m_uv = glm::vec2(arr[0].toDouble(), arr[1].toDouble());
+                }
+            }
+            if(obj.contains(QString("texture")))
+            {
+                QString texPath = local_path;
+                texPath.append(obj["texture"].toString());
+                p.SetTexture(new QImage(texPath));
+            }
             polygons.push_back(p);
         }
         //Regular Polygon case

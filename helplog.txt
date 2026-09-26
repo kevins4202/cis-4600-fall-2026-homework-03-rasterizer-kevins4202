@@ -1,5 +1,5 @@
 09/17/2026 3PM: looked up how std::arrays work https://en.cppreference.com/cpp/container/array
 09/18/2026 4PM: c++ lambda functions reference https://learn.microsoft.com/en-us/cpp/cpp/lambda-expressions-in-cpp?view=msvc-170
 09/18/2026 8PM: how to check if a polygon is convex or not https://www.geeksforgeeks.org/dsa/check-if-given-polygon-is-a-convex-polygon-or-not/
-09/19/2026 7PM: Review barycentric interpolation conceptually: https://www.youtube.com/watch?v=xe90Fi7yAgI
-09/20/2026 11AM: review lambertian reflection math
+09/19/2026 7PM: Review barycentric interpolation conceptually: https://www.youtube.com/watch?v=xe90Fi7yAgI and https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle//barycentric-coordinates.html
+09/20/2026 11AM: review lambertian reflection math https://en.wikipedia.org/wiki/Lambertian_reflectance

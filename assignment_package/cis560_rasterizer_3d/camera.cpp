@@ -7,6 +7,7 @@ glm::vec4 RotateVector(const glm::vec4& vector,
                        const glm::vec4& axis,
                        float degrees)
 {
+    // Rodrigues's formula
     const float pi = 3.14159265358979323846f;
     float radians = degrees * pi / 180.f;
     glm::vec3 v(vector);
